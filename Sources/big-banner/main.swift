@@ -11,6 +11,12 @@ guard !text.isEmpty else {
     exit(1)
 }
 
+if playBell {
+    if let sound = NSSound(contentsOfFile: "/System/Library/Sounds/Glass.aiff", byReference: false) {
+        sound.play()
+    }
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow?
 
@@ -104,11 +110,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         contentView.addSubview(bg)
 
         window?.makeKeyAndOrderFront(nil)
-        if playBell {
-            if let sound = NSSound(contentsOfFile: "/System/Library/Sounds/Glass.aiff", byReference: false) {
-                sound.play()
-            }
-        }
     }
 }
 
