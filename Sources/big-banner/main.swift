@@ -1,6 +1,9 @@
 import AppKit
 
-let text = CommandLine.arguments.dropFirst().joined(separator: " ")
+var args = Array(CommandLine.arguments.dropFirst())
+let showSheet = !args.contains("--no-sheet")
+args.removeAll { $0 == "--no-sheet" }
+let text = args.joined(separator: " ")
 guard !text.isEmpty else {
     print("Usage: banner <text>")
     exit(1)
@@ -14,11 +17,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let screenWidth = screen.frame.width
         let screenHeight = screen.frame.height
 
-        let windowWidth = screenWidth * 0.66
-        let windowHeight = screenHeight * 0.33
+        let bannerWidth = screenWidth * 0.66
+        let bannerHeight = screenHeight * 0.33
+        let menuBarHeight: CGFloat = 25
+        let windowWidth = showSheet ? screenWidth : bannerWidth
+        let windowHeight = showSheet ? screenHeight + menuBarHeight : bannerHeight
         let padding: CGFloat = 32
-        let availableWidth = windowWidth - padding * 2
-        let availableHeight = windowHeight - padding * 2
+        let availableWidth = bannerWidth - padding * 2
+        let availableHeight = bannerHeight - padding * 2
 
         let label = NSTextField(labelWithString: text)
         label.textColor = .white
@@ -49,8 +55,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let contentSize = NSSize(width: windowWidth, height: windowHeight)
 
         let origin = NSPoint(
-            x: (screenWidth - windowWidth) / 2,
-            y: (screenHeight - windowHeight) / 2
+            x: showSheet ? 0 : (screenWidth - bannerWidth) / 2,
+            y: showSheet ? -menuBarHeight : (screenHeight - bannerHeight) / 2
         )
 
         window = NSWindow(
@@ -59,26 +65,41 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             backing: .buffered,
             defer: false
         )
-        window?.level = .floating
+        window?.level = showSheet ? .screenSaver : .floating
         window?.isOpaque = false
         window?.backgroundColor = .clear
         window?.ignoresMouseEvents = false
         window?.hasShadow = false
         window?.collectionBehavior = [.canJoinAllSpaces, .stationary]
 
-        let bg = NSView(frame: NSRect(origin: .zero, size: contentSize))
+        let contentView = NSView(frame: NSRect(origin: .zero, size: contentSize))
+        window?.contentView = contentView
+
+        if showSheet {
+            let sheet = NSView(frame: NSRect(origin: .zero, size: contentSize))
+            sheet.wantsLayer = true
+            sheet.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.40).cgColor
+            contentView.addSubview(sheet)
+        }
+
+        let bg = NSView(frame: NSRect(
+            x: showSheet ? (windowWidth - bannerWidth) / 2 : 0,
+            y: showSheet ? (windowHeight - bannerHeight) / 2 : 0,
+            width: bannerWidth,
+            height: bannerHeight
+        ))
         bg.wantsLayer = true
         bg.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.85).cgColor
         bg.layer?.cornerRadius = 12
 
         label.frame = NSRect(
             x: padding,
-            y: (windowHeight - label.frame.height) / 2,
+            y: (bannerHeight - label.frame.height) / 2,
             width: availableWidth,
             height: label.frame.height
         )
         bg.addSubview(label)
-        window?.contentView = bg
+        contentView.addSubview(bg)
 
         window?.makeKeyAndOrderFront(nil)
     }
