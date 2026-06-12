@@ -3,6 +3,8 @@ import AppKit
 var args = Array(CommandLine.arguments.dropFirst())
 let showSheet = !args.contains("--no-sheet")
 args.removeAll { $0 == "--no-sheet" }
+let playBell = !args.contains("--no-bell")
+args.removeAll { $0 == "--no-bell" }
 let text = args.joined(separator: " ")
 guard !text.isEmpty else {
     print("Usage: banner <text>")
@@ -102,6 +104,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         contentView.addSubview(bg)
 
         window?.makeKeyAndOrderFront(nil)
+        if playBell {
+            if let sound = NSSound(contentsOfFile: "/System/Library/Sounds/Glass.aiff", byReference: false) {
+                sound.play()
+            }
+        }
     }
 }
 
