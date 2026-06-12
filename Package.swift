@@ -5,6 +5,6 @@ let package = Package(
     name: "banner",
     platforms: [.macOS(.v13)],
     targets: [
-        .executableTarget(name: "banner", path: "Sources/banner")
+        .executableTarget(name: "big-banner", path: "Sources/big-banner")
     ]
 )
