@@ -2,6 +2,24 @@ import AppKit
 
 var args = Array(CommandLine.arguments.dropFirst())
 
+if args.contains("--help") || args.contains("-h") {
+    print("""
+    Usage: big-banner [options] <message>
+
+    Displays a full-screen attention banner with flashing colors and an alarm sound.
+    Dismiss by clicking anywhere or pressing Escape.
+
+    Options:
+      --no-sheet      Show a floating banner instead of a full-screen overlay
+      --no-bell       Suppress the repeating Ping alarm sound
+      --pause         Pause media playback while the banner is shown (resumes on dismiss)
+      --monochrome    Show a static black/white banner instead of flashing red/yellow
+      --verbose       Print debug log messages to stdout
+      --help, -h      Show this help message
+    """)
+    exit(0)
+}
+
 let showSheet = !args.contains("--no-sheet")
 args.removeAll { $0 == "--no-sheet" }
 let playBell = !args.contains("--no-bell")
