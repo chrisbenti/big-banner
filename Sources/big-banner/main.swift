@@ -1,6 +1,7 @@
 import AppKit
 
 var args = Array(CommandLine.arguments.dropFirst())
+
 let showSheet = !args.contains("--no-sheet")
 args.removeAll { $0 == "--no-sheet" }
 let playBell = !args.contains("--no-bell")
@@ -28,7 +29,7 @@ guard !text.isEmpty else {
     exit(1)
 }
 
-let bellInterval: TimeInterval = 1.0
+let bellInterval: TimeInterval = 0.0
 
 // MARK: - Media Control
 
@@ -98,7 +99,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if playBell {
-            bellSound = NSSound(contentsOfFile: "/System/Library/Sounds/Glass.aiff", byReference: false)
+            bellSound = NSSound(contentsOfFile: "/System/Library/Sounds/Ping.aiff", byReference: false)
             log("Bell: playing (initial)")
             bellSound?.play()
             let timer = Timer(timeInterval: bellInterval, repeats: true) { [weak self] _ in
