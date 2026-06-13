@@ -134,9 +134,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         var bestFitSize: CGFloat = 12
 
+        func sfProFont(size: CGFloat) -> NSFont {
+            NSFont(name: "SFMono-Bold", size: size) ?? .monospacedSystemFont(ofSize: size, weight: .bold)
+        }
+
         for testSize in stride(from: 12, through: 200, by: 2) {
             let size = CGFloat(testSize)
-            label.font = .systemFont(ofSize: size, weight: .bold)
+            label.font = sfProFont(size: size)
             label.preferredMaxLayoutWidth = availableWidth
             label.sizeToFit()
 
@@ -147,7 +151,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        label.font = .systemFont(ofSize: bestFitSize, weight: .bold)
+        label.font = sfProFont(size: bestFitSize)
         label.preferredMaxLayoutWidth = availableWidth
         label.sizeToFit()
 
