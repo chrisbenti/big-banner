@@ -1,30 +1,35 @@
 import AppKit
-import CoreAudio
 
 var args = Array(CommandLine.arguments.dropFirst())
 let showSheet = !args.contains("--no-sheet")
 args.removeAll { $0 == "--no-sheet" }
 let playBell = !args.contains("--no-bell")
 args.removeAll { $0 == "--no-bell" }
-let pauseMedia = !args.contains("--no-pause")
-args.removeAll { $0 == "--no-pause" }
+let pauseMedia = args.contains("--pause")
+args.removeAll { $0 == "--pause" }
+let verbose = args.contains("--verbose")
+args.removeAll { $0 == "--verbose" }
 let text = args.joined(separator: " ")
+
+func log(_ msg: String) {
+    guard verbose else { return }
+    print("[big-banner] \(msg)")
+}
 guard !text.isEmpty else {
     print("Usage: banner <text>")
     exit(1)
 }
 
-if playBell {
-    if let sound = NSSound(contentsOfFile: "/System/Library/Sounds/Glass.aiff", byReference: false) {
-        sound.play()
-    }
-}
+let bellInterval: TimeInterval = 1.0
 
 // MARK: - Media Control
 
 class MediaController {
-    private typealias MRSendCommand = @convention(c) (Int, CFDictionary?) -> Bool
-    private let sendCommand: MRSendCommand?
+    private typealias MRSendCommand  = @convention(c) (Int, CFDictionary?) -> Bool
+    private typealias MRGetIsPlaying = @convention(c) (DispatchQueue, @escaping (Bool) -> Void) -> Void
+
+    private let sendCommand:  MRSendCommand?
+    private let getIsPlaying: MRGetIsPlaying?
     private var didPause = false
 
     private let kMRPlay  = 0
@@ -35,61 +40,65 @@ class MediaController {
             "/System/Library/PrivateFrameworks/MediaRemote.framework/MediaRemote",
             RTLD_LAZY
         )
-        if let sym = dlsym(handle, "MRMediaRemoteSendCommand") {
-            sendCommand = unsafeBitCast(sym, to: MRSendCommand.self)
-        } else {
-            sendCommand = nil
-        }
-    }
-
-    // Returns true if any process is actively outputting audio.
-    private func isAudioPlaying() -> Bool {
-        var deviceID = AudioDeviceID(0)
-        var size = UInt32(MemoryLayout<AudioDeviceID>.size)
-        var addr = AudioObjectPropertyAddress(
-            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
-            mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMain
-        )
-        guard AudioObjectGetPropertyData(
-            AudioObjectID(kAudioObjectSystemObject), &addr, 0, nil, &size, &deviceID
-        ) == noErr, deviceID != kAudioDeviceUnknown else { return false }
-
-        var isRunning = UInt32(0)
-        size = UInt32(MemoryLayout<UInt32>.size)
-        addr = AudioObjectPropertyAddress(
-            mSelector: kAudioDevicePropertyDeviceIsRunningSomewhere,
-            mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMain
-        )
-        guard AudioObjectGetPropertyData(
-            deviceID, &addr, 0, nil, &size, &isRunning
-        ) == noErr else { return false }
-
-        return isRunning != 0
+        sendCommand = dlsym(handle, "MRMediaRemoteSendCommand")
+            .map { unsafeBitCast($0, to: MRSendCommand.self) }
+        getIsPlaying = dlsym(handle, "MRMediaRemoteGetNowPlayingApplicationIsPlaying")
+            .map { unsafeBitCast($0, to: MRGetIsPlaying.self) }
     }
 
     func pauseIfPlaying() {
-        guard isAudioPlaying(), let send = sendCommand else { return }
-        if send(kMRPause, nil) {
-            didPause = true
+        guard let send = sendCommand, let getIsPlaying = getIsPlaying else {
+            log("MediaController: missing symbols, skipping pause")
+            return
         }
+        let semaphore = DispatchSemaphore(value: 0)
+        var isPlaying = false
+        getIsPlaying(DispatchQueue.global()) { playing in
+            isPlaying = playing
+            semaphore.signal()
+        }
+        semaphore.wait()
+        log("MediaController: isPlaying=\(isPlaying)")
+        guard isPlaying else { return }
+        let result = send(kMRPause, nil)
+        log("MediaController: pause returned \(result)")
+        if result { didPause = true }
     }
 
     func resumeIfPaused() {
+        log("MediaController: resumeIfPaused called, didPause=\(didPause)")
         guard didPause, let send = sendCommand else { return }
-        _ = send(kMRPlay, nil)
+        log("MediaController: sending play command")
+        let result = send(kMRPlay, nil)
+        log("MediaController: play returned \(result)")
         didPause = false
     }
 }
 
 let mediaController: MediaController? = pauseMedia ? MediaController() : nil
+log("pauseMedia=\(pauseMedia)")
 mediaController?.pauseIfPlaying()
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow?
+    var bellSound: NSSound?
+    var bellTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if playBell {
+            bellSound = NSSound(contentsOfFile: "/System/Library/Sounds/Glass.aiff", byReference: false)
+            log("Bell: playing (initial)")
+            bellSound?.play()
+            let timer = Timer(timeInterval: bellInterval, repeats: true) { [weak self] _ in
+                guard let sound = self?.bellSound else { return }
+                log("Bell: timer fired, isPlaying=\(sound.isPlaying)")
+                guard !sound.isPlaying else { return }
+                log("Bell: playing (repeat)")
+                sound.play()
+            }
+            RunLoop.main.add(timer, forMode: .common)
+            bellTimer = timer
+        }
         let screen = NSScreen.main!
         let screenWidth = screen.frame.width
         let screenHeight = screen.frame.height
@@ -182,6 +191,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        bellTimer?.invalidate()
+        bellSound?.stop()
         mediaController?.resumeIfPaused()
     }
 }
