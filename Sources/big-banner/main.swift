@@ -9,7 +9,15 @@ let pauseMedia = args.contains("--pause")
 args.removeAll { $0 == "--pause" }
 let verbose = args.contains("--verbose")
 args.removeAll { $0 == "--verbose" }
+let monochrome = args.contains("--monochrome")
+args.removeAll { $0 == "--monochrome" }
 let text = args.joined(separator: " ")
+
+// Flash colors — deep warning red and amber gold
+let flashRedBg   = NSColor(red: 0.68, green: 0.09, blue: 0.07, alpha: 0.92)
+let flashYellowBg = NSColor(red: 0.90, green: 0.68, blue: 0.03, alpha: 0.92)
+let flashRedFg   = NSColor.white
+let flashYellowFg = NSColor(red: 0.10, green: 0.07, blue: 0.01, alpha: 1.0)
 
 func log(_ msg: String) {
     guard verbose else { return }
@@ -83,6 +91,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow?
     var bellSound: NSSound?
     var bellTimer: Timer?
+    var flashTimer: Timer?
+    var flashState = false
+    var bgView: NSView?
+    var bannerLabel: NSTextField?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if playBell {
@@ -113,11 +125,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let availableHeight = bannerHeight - padding * 2
 
         let label = NSTextField(labelWithString: text)
-        label.textColor = .white
+        label.textColor = monochrome ? .white : flashRedFg
         label.isEditable = false
         label.isBordered = false
         label.drawsBackground = false
         label.alignment = .center
+        bannerLabel = label
 
         var bestFitSize: CGFloat = 12
 
@@ -175,8 +188,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             height: bannerHeight
         ))
         bg.wantsLayer = true
-        bg.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.85).cgColor
+        bg.layer?.backgroundColor = monochrome
+            ? NSColor.black.withAlphaComponent(0.85).cgColor
+            : flashRedBg.cgColor
         bg.layer?.cornerRadius = 12
+        bgView = bg
 
         label.frame = NSRect(
             x: padding,
@@ -188,10 +204,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         contentView.addSubview(bg)
 
         window?.makeKeyAndOrderFront(nil)
+
+        if !monochrome {
+            let timer = Timer(timeInterval: 0.55, repeats: true) { [weak self] _ in
+                guard let self = self else { return }
+                self.flashState.toggle()
+                let nextBg = self.flashState ? flashYellowBg : flashRedBg
+                let nextFg = self.flashState ? flashYellowFg : flashRedFg
+                CATransaction.begin()
+                CATransaction.setAnimationDuration(0.12)
+                self.bgView?.layer?.backgroundColor = nextBg.cgColor
+                CATransaction.commit()
+                self.bannerLabel?.textColor = nextFg
+            }
+            RunLoop.main.add(timer, forMode: .common)
+            flashTimer = timer
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         bellTimer?.invalidate()
+        flashTimer?.invalidate()
         bellSound?.stop()
         mediaController?.resumeIfPaused()
     }
