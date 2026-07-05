@@ -17,15 +17,24 @@ make hard-install   # copies binary to ~/bin
 
 ### Download a prebuilt binary
 
-Every push to `main` builds a binary via GitHub Actions. Grab the latest one with the `gh` CLI:
+Every push to `main` publishes a fresh binary to the `latest` release. This repo is private, so you'll need a [personal access token](https://github.com/settings/tokens) with `repo` scope to download it:
 
 ```
-gh run download -n big-banner -R chrisbenti/big-banner --dir /tmp/big-banner
-chmod +x /tmp/big-banner/big-banner
-xattr -d com.apple.quarantine /tmp/big-banner/big-banner   # unquarantine, since it's unsigned
+TOKEN=<your GitHub PAT>
+REPO=chrisbenti/big-banner
+
+ASSET_URL=$(curl -fsSL -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" \
+  "https://api.github.com/repos/$REPO/releases/latest" | jq -r '.assets[] | select(.name=="big-banner").url')
+
 mkdir -p ~/bin
-cp /tmp/big-banner/big-banner ~/bin/big-banner
+curl -fsSL -H "Authorization: Bearer $TOKEN" -H "Accept: application/octet-stream" \
+  -o ~/bin/big-banner "$ASSET_URL"
+
+chmod +x ~/bin/big-banner
+xattr -d com.apple.quarantine ~/bin/big-banner   # unquarantine, since it's unsigned
 ```
+
+Make sure `~/bin` is on your `PATH` (e.g. `export PATH="$HOME/bin:$PATH"` in your `.zshrc`/`.bashrc`), then run it as `big-banner`.
 
 ## Claude Code integration
 

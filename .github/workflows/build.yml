@@ -6,6 +6,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: macos-latest
@@ -16,3 +19,10 @@ jobs:
         with:
           name: big-banner
           path: .build/release/big-banner
+      - if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: latest
+          make_latest: true
+          files: .build/release/big-banner
