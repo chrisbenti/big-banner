@@ -11,8 +11,12 @@ big-banner --no-pause "heads up"      # don't pause media
 
 ## Install
 
+Make sure ~/bin is on your path
+
 ```
 make hard-install   # copies binary to ~/bin
+# OR
+make soft-install   # sym-links binary from build dir
 ```
 
 ### Download a prebuilt binary
