@@ -17,16 +17,30 @@ make hard-install   # copies binary to ~/bin
 
 ### Download a prebuilt binary
 
-Every push to `main` publishes a fresh binary to the `latest` release:
+Every push to `main` publishes a fresh binary to the `latest` release. Using the [`gh` CLI](https://cli.github.com/):
 
 ```
 mkdir -p ~/bin
-curl -fsSL -o ~/bin/big-banner \
-  https://github.com/chrisbenti/big-banner/releases/latest/download/big-banner
+gh release download latest -R chrisbenti/big-banner -p big-banner -O ~/bin/big-banner --clobber
 
 chmod +x ~/bin/big-banner
 xattr -d com.apple.quarantine ~/bin/big-banner   # unquarantine, since it's unsigned
 ```
+
+Or from the GitHub UI:
+
+1. Go to the [latest release](https://github.com/chrisbenti/big-banner/releases/latest).
+2. Under **Assets**, click `big-banner` to download it.
+3. Move it into `~/bin` and make it executable:
+   ```
+   mkdir -p ~/bin
+   mv ~/Downloads/big-banner ~/bin/big-banner
+   chmod +x ~/bin/big-banner
+   ```
+4. Remove the quarantine flag, since the binary is unsigned (otherwise Gatekeeper will refuse to run it):
+   ```
+   xattr -d com.apple.quarantine ~/bin/big-banner
+   ```
 
 Make sure `~/bin` is on your `PATH` (e.g. `export PATH="$HOME/bin:$PATH"` in your `.zshrc`/`.bashrc`), then run it as `big-banner`.
 
