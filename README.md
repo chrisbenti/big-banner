@@ -17,18 +17,12 @@ make hard-install   # copies binary to ~/bin
 
 ### Download a prebuilt binary
 
-Every push to `main` publishes a fresh binary to the `latest` release. This repo is private, so you'll need a [personal access token](https://github.com/settings/tokens) with `repo` scope to download it:
+Every push to `main` publishes a fresh binary to the `latest` release:
 
 ```
-TOKEN=<your GitHub PAT>
-REPO=chrisbenti/big-banner
-
-ASSET_URL=$(curl -fsSL -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" \
-  "https://api.github.com/repos/$REPO/releases/latest" | jq -r '.assets[] | select(.name=="big-banner").url')
-
 mkdir -p ~/bin
-curl -fsSL -H "Authorization: Bearer $TOKEN" -H "Accept: application/octet-stream" \
-  -o ~/bin/big-banner "$ASSET_URL"
+curl -fsSL -o ~/bin/big-banner \
+  https://github.com/chrisbenti/big-banner/releases/latest/download/big-banner
 
 chmod +x ~/bin/big-banner
 xattr -d com.apple.quarantine ~/bin/big-banner   # unquarantine, since it's unsigned
