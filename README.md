@@ -15,6 +15,18 @@ big-banner --no-pause "heads up"      # don't pause media
 make hard-install   # copies binary to ~/bin
 ```
 
+### Download a prebuilt binary
+
+Every push to `main` builds a binary via GitHub Actions. Grab the latest one with the `gh` CLI:
+
+```
+gh run download -n big-banner -R chrisbenti/big-banner --dir /tmp/big-banner
+chmod +x /tmp/big-banner/big-banner
+xattr -d com.apple.quarantine /tmp/big-banner/big-banner   # unquarantine, since it's unsigned
+mkdir -p ~/bin
+cp /tmp/big-banner/big-banner ~/bin/big-banner
+```
+
 ## Claude Code integration
 
 Fire a banner whenever Claude Code needs your input (`Notification`) or finishes (`Stop`) by adding these hooks to `~/.claude/settings.json`:
