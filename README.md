@@ -15,6 +15,37 @@ big-banner --no-pause "heads up"      # don't pause media
 make hard-install   # copies binary to ~/bin
 ```
 
+## Claude Code integration
+
+Fire a banner whenever Claude Code needs your input (`Notification`) or finishes (`Stop`) by adding these hooks to `~/.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "msg=$(jq -r '.message // \"Claude needs your input\"'); big-banner \"$msg\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "big-banner \"Claude is done\""
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
 ---
 
 ## How media pausing works
