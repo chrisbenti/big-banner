@@ -21,11 +21,11 @@ make soft-install   # sym-links binary from build dir
 
 ### Download a prebuilt binary
 
-Every push to `main` publishes a fresh binary to the `latest` release. Using the [`gh` CLI](https://cli.github.com/):
+Every push to `main` publishes a fresh binary to the `latest` release. Since the repo is public, no auth is needed:
 
 ```
 mkdir -p ~/bin
-gh release download latest -R chrisbenti/big-banner -p big-banner -O ~/bin/big-banner --clobber
+curl -L https://github.com/chrisbenti/big-banner/releases/latest/download/big-banner -o ~/bin/big-banner
 
 chmod +x ~/bin/big-banner
 xattr -d com.apple.quarantine ~/bin/big-banner   # unquarantine, since it's unsigned
