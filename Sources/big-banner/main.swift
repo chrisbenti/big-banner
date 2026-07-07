@@ -7,7 +7,8 @@ if args.contains("--help") || args.contains("-h") {
     Usage: big-banner [options] <message>
 
     Displays a full-screen attention banner with flashing colors and an alarm sound.
-    Dismiss by clicking anywhere or pressing Escape.
+    Grabs and holds keyboard focus until dismissed.
+    Dismiss by clicking anywhere or pressing any key.
 
     Options:
       --no-sheet      Show a floating banner instead of a full-screen overlay
@@ -114,6 +115,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var flashState = false
     var bgView: NSView?
     var bannerLabel: NSTextField?
+    var focusTimer: Timer?
+    var observers: [NSObjectProtocol] = []
+
+    func seizeFocus() {
+        NSApp.activate(ignoringOtherApps: true)
+        window?.makeKeyAndOrderFront(nil)
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if playBell {
@@ -228,6 +236,31 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         window?.makeKeyAndOrderFront(nil)
 
+        let resignObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didResignKeyNotification, object: window, queue: .main
+        ) { [weak self] _ in
+            log("Window resigned key, reseizing focus")
+            self?.seizeFocus()
+        }
+        let activateObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
+        ) { [weak self] note in
+            let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            guard app?.processIdentifier != ProcessInfo.processInfo.processIdentifier else { return }
+            log("Another application activated, reseizing focus")
+            self?.seizeFocus()
+        }
+        observers = [resignObserver, activateObserver]
+
+        let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            if !NSApp.isActive || self.window?.isKeyWindow != true {
+                self.seizeFocus()
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        focusTimer = timer
+
         if !monochrome {
             let timer = Timer(timeInterval: 0.55, repeats: true) { [weak self] _ in
                 guard let self = self else { return }
@@ -248,6 +281,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         bellTimer?.invalidate()
         flashTimer?.invalidate()
+        focusTimer?.invalidate()
+        for observer in observers {
+            NotificationCenter.default.removeObserver(observer)
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+        }
         bellSound?.stop()
         mediaController?.resumeIfPaused()
     }
@@ -263,11 +301,9 @@ NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { _ in
     return nil
 }
 
-NSEvent.addLocalMonitorForEvents(matching: .keyDown) { e in
-    if e.keyCode == 53 {
-        app.terminate(nil)
-    }
-    return e
+NSEvent.addLocalMonitorForEvents(matching: .keyDown) { _ in
+    app.terminate(nil)
+    return nil
 }
 
 app.activate(ignoringOtherApps: true)
