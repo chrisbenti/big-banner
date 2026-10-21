@@ -15,6 +15,8 @@ if args.contains("--help") || args.contains("-h") {
       --no-bell       Suppress the repeating Ping alarm sound
       --pause         Pause media playback while the banner is shown (resumes on dismiss)
       --monochrome    Show a static black/white banner instead of flashing red/yellow
+      --super <text>  Optional smaller line shown above the message (ignored if empty)
+      --sub <text>    Optional smaller line shown below the message (ignored if empty)
       --verbose       Print debug log messages to stdout
       --help, -h      Show this help message
     """)
@@ -31,6 +33,16 @@ let verbose = args.contains("--verbose")
 args.removeAll { $0 == "--verbose" }
 let monochrome = args.contains("--monochrome")
 args.removeAll { $0 == "--monochrome" }
+
+func takeValue(for flag: String) -> String? {
+    guard let i = args.firstIndex(of: flag) else { return nil }
+    args.remove(at: i)
+    guard i < args.count else { return nil }
+    let value = args.remove(at: i).trimmingCharacters(in: .whitespacesAndNewlines)
+    return value.isEmpty ? nil : value
+}
+let superText = takeValue(for: "--super")
+let subText = takeValue(for: "--sub")
 let text = args.joined(separator: " ")
 
 // Flash colors — deep warning red and amber gold
@@ -114,7 +126,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var flashTimer: Timer?
     var flashState = false
     var bgView: NSView?
-    var bannerLabel: NSTextField?
+    var bannerLabels: [NSTextField] = []
     var focusTimer: Timer?
     var observers: [NSObjectProtocol] = []
 
@@ -151,36 +163,56 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let availableWidth = bannerWidth - padding * 2
         let availableHeight = bannerHeight - padding * 2
 
-        let label = NSTextField(labelWithString: text)
-        label.textColor = monochrome ? .white : flashRedFg
-        label.isEditable = false
-        label.isBordered = false
-        label.drawsBackground = false
-        label.alignment = .center
-        bannerLabel = label
+        func makeLabel(_ string: String) -> NSTextField {
+            let label = NSTextField(labelWithString: string)
+            label.textColor = monochrome ? .white : flashRedFg
+            label.isEditable = false
+            label.isBordered = false
+            label.drawsBackground = false
+            label.alignment = .center
+            label.preferredMaxLayoutWidth = availableWidth
+            return label
+        }
 
-        var bestFitSize: CGFloat = 12
+        let label = makeLabel(text)
+        let superLabel = superText.map(makeLabel)
+        let subLabel = subText.map(makeLabel)
+        bannerLabels = [superLabel, label, subLabel].compactMap { $0 }
 
         func sfProFont(size: CGFloat) -> NSFont {
             NSFont(name: "SFMono-Bold", size: size) ?? .monospacedSystemFont(ofSize: size, weight: .bold)
         }
 
+        // Super/sub lines scale with the main text so the stack always fits.
+        let secondaryScale: CGFloat = 0.3
+        let lineGap: CGFloat = 8
+
+        // Sizes the stack for a main font size; returns the total height and width.
+        func layoutStack(mainSize: CGFloat) -> (width: CGFloat, height: CGFloat) {
+            var width: CGFloat = 0
+            var height: CGFloat = 0
+            for (i, l) in bannerLabels.enumerated() {
+                let isMain = l === label
+                l.font = sfProFont(size: isMain ? mainSize : max(10, (mainSize * secondaryScale).rounded()))
+                l.preferredMaxLayoutWidth = availableWidth
+                l.sizeToFit()
+                width = max(width, l.frame.width)
+                height += l.frame.height + (i > 0 ? lineGap : 0)
+            }
+            return (width, height)
+        }
+
+        var bestFitSize: CGFloat = 12
         for testSize in stride(from: 12, through: 200, by: 2) {
             let size = CGFloat(testSize)
-            label.font = sfProFont(size: size)
-            label.preferredMaxLayoutWidth = availableWidth
-            label.sizeToFit()
-
-            if label.frame.width <= availableWidth && label.frame.height <= availableHeight {
+            let fit = layoutStack(mainSize: size)
+            if fit.width <= availableWidth && fit.height <= availableHeight {
                 bestFitSize = size
             } else {
                 break
             }
         }
-
-        label.font = sfProFont(size: bestFitSize)
-        label.preferredMaxLayoutWidth = availableWidth
-        label.sizeToFit()
+        let stackHeight = layoutStack(mainSize: bestFitSize).height
 
         let contentSize = NSSize(width: windowWidth, height: windowHeight)
 
@@ -225,13 +257,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         bg.layer?.cornerRadius = 12
         bgView = bg
 
-        label.frame = NSRect(
-            x: padding,
-            y: (bannerHeight - label.frame.height) / 2,
-            width: availableWidth,
-            height: label.frame.height
-        )
-        bg.addSubview(label)
+        var cursorY = (bannerHeight + stackHeight) / 2
+        for (i, l) in bannerLabels.enumerated() {
+            cursorY -= l.frame.height + (i > 0 ? lineGap : 0)
+            l.frame = NSRect(x: padding, y: cursorY, width: availableWidth, height: l.frame.height)
+            bg.addSubview(l)
+        }
         contentView.addSubview(bg)
 
         window?.makeKeyAndOrderFront(nil)
@@ -271,7 +302,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 CATransaction.setAnimationDuration(0.12)
                 self.bgView?.layer?.backgroundColor = nextBg.cgColor
                 CATransaction.commit()
-                self.bannerLabel?.textColor = nextFg
+                self.bannerLabels.forEach { $0.textColor = nextFg }
             }
             RunLoop.main.add(timer, forMode: .common)
             flashTimer = timer

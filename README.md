@@ -6,6 +6,7 @@ Fullscreen attention banner for macOS. Plays a sound, dims the screen, shows you
 big-banner "STAND UP"
 big-banner --no-sheet "DRINK WATER"   # floating banner only, no dim
 big-banner --no-bell "meeting soon"   # no sound
+big-banner --super "BUILD FAILED" --sub "main @ c85d485" "DEPLOY BLOCKED"   # optional smaller lines above/below
 big-banner --no-pause "heads up"      # don't pause media
 ```
 
