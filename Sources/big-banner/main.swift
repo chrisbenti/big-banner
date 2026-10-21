@@ -14,15 +14,29 @@ if args.contains("--help") || args.contains("-h") {
       --no-sheet      Show a floating banner instead of a full-screen overlay
       --no-bell       Suppress the repeating Ping alarm sound
       --pause         Pause media playback while the banner is shown (resumes on dismiss)
-      --primary       Flashing blue/sky theme (default)
-      --secondary     Flashing purple/lavender theme
-      --tertiary      Flashing green/lime theme
-      --danger        Flashing red/yellow theme
-      --monochrome    Static black/white theme
-      --super <text>  Optional smaller line shown above the message (ignored if empty)
-      --sub <text>    Optional smaller line shown below the message (ignored if empty)
+      --super <text>  Smaller line shown above the message
+      --sub <text>    Smaller line shown below the message
       --verbose       Print debug log messages to stdout
       --help, -h      Show this help message
+
+    Themes (pick one; if several are given, the last wins; default is --primary):
+      --primary       Flashing blue/sky blue
+      --secondary     Flashing purple/lavender
+      --tertiary      Flashing green/lime
+      --danger        Flashing red/yellow (use for urgent alerts)
+      --monochrome    Static black/white, no flashing
+    Colors are defined in Sources/big-banner/Themes.swift.
+
+    Super and sub headers:
+      Both are optional and independent: use either, both, or neither.
+      A missing or empty/whitespace-only value hides that line.
+      They render at roughly 30% of the main message's font size, centered
+      above/below it. The main message is shrunk as needed so everything fits.
+
+    Examples:
+      big-banner "STAND UP"
+      big-banner --danger --super "BUILD FAILED" --sub "main @ c85d485" "DEPLOY BLOCKED"
+      big-banner --tertiary --sub "all checks passed" "MERGED"
     """)
     exit(0)
 }
