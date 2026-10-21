@@ -32,7 +32,8 @@ if args.contains("--help") || args.contains("-h") {
       A missing or empty/whitespace-only value hides that line.
       They render at a fixed size (shrinking only if a line is too wide for
       the banner), centered above/below the main message. The main message
-      is sized independently to fill the remaining space.
+      is sized independently to fill the remaining space, but never below
+      18pt; longer text is truncated with an ellipsis instead.
 
     Examples:
       big-banner "STAND UP"
@@ -230,8 +231,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return (label.frame.width, label.frame.height)
         }
 
-        var bestFitSize: CGFloat = 12
-        for testSize in stride(from: 12, through: 200, by: 2) {
+        // The main text never shrinks below minMainSize; past that it is truncated.
+        let minMainSize: CGFloat = 18
+        var bestFitSize: CGFloat = minMainSize
+        for testSize in stride(from: Int(minMainSize), through: 200, by: 2) {
             let size = CGFloat(testSize)
             let fit = layoutMain(size: size)
             if fit.width <= availableWidth && fit.height <= mainAvailableHeight {
@@ -240,7 +243,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 break
             }
         }
-        _ = layoutMain(size: bestFitSize)
+        let finalFit = layoutMain(size: bestFitSize)
+        if finalFit.height > mainAvailableHeight {
+            // Even the minimum size overflows: keep only the lines that fit, ending in an ellipsis.
+            let lineHeight = ceil(label.font!.ascender - label.font!.descender + label.font!.leading)
+            label.maximumNumberOfLines = max(1, Int(mainAvailableHeight / lineHeight))
+            label.lineBreakMode = .byTruncatingTail
+            label.sizeToFit()
+        }
         let stackHeight = bannerLabels.enumerated().reduce(CGFloat(0)) {
             $0 + $1.element.frame.height + ($1.offset > 0 ? lineGap : 0)
         }
