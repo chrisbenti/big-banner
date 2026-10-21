@@ -30,8 +30,9 @@ if args.contains("--help") || args.contains("-h") {
     Super and sub headers:
       Both are optional and independent: use either, both, or neither.
       A missing or empty/whitespace-only value hides that line.
-      They render at roughly 30% of the main message's font size, centered
-      above/below it. The main message is shrunk as needed so everything fits.
+      They render at a fixed size (shrinking only if a line is too wide for
+      the banner), centered above/below the main message. The main message
+      is sized independently to fill the remaining space.
 
     Examples:
       big-banner "STAND UP"
@@ -196,36 +197,53 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             NSFont(name: "SFMono-Bold", size: size) ?? .monospacedSystemFont(ofSize: size, weight: .bold)
         }
 
-        // Super/sub lines scale with the main text so the stack always fits.
-        let secondaryScale: CGFloat = 0.3
+        // Super/sub lines size independently of the main text: each uses the
+        // largest size up to secondaryMaxSize that fits on one line.
+        let secondaryMaxSize: CGFloat = 48
         let lineGap: CGFloat = 8
 
-        // Sizes the stack for a main font size; returns the total height and width.
-        func layoutStack(mainSize: CGFloat) -> (width: CGFloat, height: CGFloat) {
-            var width: CGFloat = 0
-            var height: CGFloat = 0
-            for (i, l) in bannerLabels.enumerated() {
-                let isMain = l === label
-                l.font = sfProFont(size: isMain ? mainSize : max(10, (mainSize * secondaryScale).rounded()))
-                l.preferredMaxLayoutWidth = availableWidth
+        func fitSecondary(_ l: NSTextField) {
+            l.maximumNumberOfLines = 1
+            l.lineBreakMode = .byClipping
+            var size = secondaryMaxSize
+            while size > 10 {
+                l.font = sfProFont(size: size)
                 l.sizeToFit()
-                width = max(width, l.frame.width)
-                height += l.frame.height + (i > 0 ? lineGap : 0)
+                if l.frame.width <= availableWidth { return }
+                size -= 2
             }
-            return (width, height)
+            l.font = sfProFont(size: size)
+            l.sizeToFit()
+        }
+
+        for l in bannerLabels where l !== label { fitSecondary(l) }
+        let secondaryHeight = bannerLabels
+            .filter { $0 !== label }
+            .reduce(CGFloat(0)) { $0 + $1.frame.height + lineGap }
+
+        // Main text takes whatever space the secondary lines leave.
+        let mainAvailableHeight = availableHeight - secondaryHeight
+        func layoutMain(size: CGFloat) -> (width: CGFloat, height: CGFloat) {
+            label.font = sfProFont(size: size)
+            label.preferredMaxLayoutWidth = availableWidth
+            label.sizeToFit()
+            return (label.frame.width, label.frame.height)
         }
 
         var bestFitSize: CGFloat = 12
         for testSize in stride(from: 12, through: 200, by: 2) {
             let size = CGFloat(testSize)
-            let fit = layoutStack(mainSize: size)
-            if fit.width <= availableWidth && fit.height <= availableHeight {
+            let fit = layoutMain(size: size)
+            if fit.width <= availableWidth && fit.height <= mainAvailableHeight {
                 bestFitSize = size
             } else {
                 break
             }
         }
-        let stackHeight = layoutStack(mainSize: bestFitSize).height
+        _ = layoutMain(size: bestFitSize)
+        let stackHeight = bannerLabels.enumerated().reduce(CGFloat(0)) {
+            $0 + $1.element.frame.height + ($1.offset > 0 ? lineGap : 0)
+        }
 
         let contentSize = NSSize(width: windowWidth, height: windowHeight)
 
