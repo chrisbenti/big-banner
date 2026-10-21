@@ -17,4 +17,4 @@ After any change that affects how the banner looks (sizing, layout, themes, font
 
 ## Main Text Size and Truncation
 
-The main message is sized to fill the space left by the super/sub headers, but **must never go below 18pt**. If the text still doesn't fit at 18pt, don't shrink further: cap the number of lines to what fits and truncate with a trailing ellipsis (`.byTruncatingTail`). Super/sub headers stay independent of the main text size.
+The main message is sized to fill the space left by the super/sub headers, but **must never go below 20pt**. If the text still doesn't fit at 20pt, don't shrink further: cap the number of lines to what fits and truncate with a trailing ellipsis (`.byTruncatingTail`). Super/sub headers stay independent of the main text size.
