@@ -199,7 +199,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Super/sub lines size independently of the main text: each uses the
         // largest size up to secondaryMaxSize that fits on one line.
-        let secondaryMaxSize: CGFloat = 48
+        let secondaryMaxSize: CGFloat = 16
         let lineGap: CGFloat = 8
 
         func fitSecondary(_ l: NSTextField) {
