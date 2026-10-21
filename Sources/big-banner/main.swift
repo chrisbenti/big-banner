@@ -33,7 +33,7 @@ if args.contains("--help") || args.contains("-h") {
       They render at a fixed size (shrinking only if a line is too wide for
       the banner), centered above/below the main message. The main message
       is sized independently to fill the remaining space, but never below
-      20pt; longer text is truncated with an ellipsis instead.
+      24pt; longer text is truncated with an ellipsis instead.
 
     Examples:
       big-banner "STAND UP"
@@ -232,7 +232,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // The main text never shrinks below minMainSize; past that it is truncated.
-        let minMainSize: CGFloat = 20
+        let minMainSize: CGFloat = 24
         var bestFitSize: CGFloat = minMainSize
         for testSize in stride(from: Int(minMainSize), through: 200, by: 2) {
             let size = CGFloat(testSize)
