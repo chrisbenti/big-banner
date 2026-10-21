@@ -14,7 +14,11 @@ if args.contains("--help") || args.contains("-h") {
       --no-sheet      Show a floating banner instead of a full-screen overlay
       --no-bell       Suppress the repeating Ping alarm sound
       --pause         Pause media playback while the banner is shown (resumes on dismiss)
-      --monochrome    Show a static black/white banner instead of flashing red/yellow
+      --primary       Flashing blue/sky theme (default)
+      --secondary     Flashing purple/lavender theme
+      --tertiary      Flashing green/lime theme
+      --danger        Flashing red/yellow theme
+      --monochrome    Static black/white theme
       --super <text>  Optional smaller line shown above the message (ignored if empty)
       --sub <text>    Optional smaller line shown below the message (ignored if empty)
       --verbose       Print debug log messages to stdout
@@ -31,8 +35,9 @@ let pauseMedia = args.contains("--pause")
 args.removeAll { $0 == "--pause" }
 let verbose = args.contains("--verbose")
 args.removeAll { $0 == "--verbose" }
-let monochrome = args.contains("--monochrome")
-args.removeAll { $0 == "--monochrome" }
+// Last theme flag wins.
+let theme = args.compactMap { arg in Themes.all.first { $0.flag == arg } }.last ?? Themes.default
+args.removeAll { arg in Themes.all.contains { $0.flag == arg } }
 
 func takeValue(for flag: String) -> String? {
     guard let i = args.firstIndex(of: flag) else { return nil }
@@ -44,12 +49,6 @@ func takeValue(for flag: String) -> String? {
 let superText = takeValue(for: "--super")
 let subText = takeValue(for: "--sub")
 let text = args.joined(separator: " ")
-
-// Flash colors — deep warning red and amber gold
-let flashRedBg   = NSColor(red: 0.68, green: 0.09, blue: 0.07, alpha: 0.92)
-let flashYellowBg = NSColor(red: 0.90, green: 0.68, blue: 0.03, alpha: 0.92)
-let flashRedFg   = NSColor.white
-let flashYellowFg = NSColor(red: 0.10, green: 0.07, blue: 0.01, alpha: 1.0)
 
 func log(_ msg: String) {
     guard verbose else { return }
@@ -165,7 +164,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         func makeLabel(_ string: String) -> NSTextField {
             let label = NSTextField(labelWithString: string)
-            label.textColor = monochrome ? .white : flashRedFg
+            label.textColor = theme.fgA
             label.isEditable = false
             label.isBordered = false
             label.drawsBackground = false
@@ -251,9 +250,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             height: bannerHeight
         ))
         bg.wantsLayer = true
-        bg.layer?.backgroundColor = monochrome
-            ? NSColor.black.withAlphaComponent(0.85).cgColor
-            : flashRedBg.cgColor
+        bg.layer?.backgroundColor = theme.bgA.cgColor
         bg.layer?.cornerRadius = 12
         bgView = bg
 
@@ -292,12 +289,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         RunLoop.main.add(timer, forMode: .common)
         focusTimer = timer
 
-        if !monochrome {
+        if theme.flashes {
             let timer = Timer(timeInterval: 0.55, repeats: true) { [weak self] _ in
                 guard let self = self else { return }
                 self.flashState.toggle()
-                let nextBg = self.flashState ? flashYellowBg : flashRedBg
-                let nextFg = self.flashState ? flashYellowFg : flashRedFg
+                let nextBg = self.flashState ? theme.bgB : theme.bgA
+                let nextFg = self.flashState ? theme.fgB : theme.fgA
                 CATransaction.begin()
                 CATransaction.setAnimationDuration(0.12)
                 self.bgView?.layer?.backgroundColor = nextBg.cgColor

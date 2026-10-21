@@ -7,6 +7,7 @@ big-banner "STAND UP"
 big-banner --no-sheet "DRINK WATER"   # floating banner only, no dim
 big-banner --no-bell "meeting soon"   # no sound
 big-banner --super "BUILD FAILED" --sub "main @ c85d485" "DEPLOY BLOCKED"   # optional smaller lines above/below
+big-banner --danger "PROD IS DOWN"   # themes: --primary (default), --secondary, --tertiary, --danger, --monochrome
 big-banner --no-pause "heads up"      # don't pause media
 ```
 
