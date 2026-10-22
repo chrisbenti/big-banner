@@ -52,7 +52,14 @@ Make sure `~/bin` is on your `PATH` (e.g. `export PATH="$HOME/bin:$PATH"` in you
 
 ## Claude Code integration
 
-Fire a banner whenever Claude Code needs your input (`Notification`) or finishes (`Stop`) by adding these hooks to `~/.claude/settings.json`:
+Claude Code [hooks](https://docs.claude.com/en/docs/claude-code/hooks) can fire a banner whenever Claude needs you (`Notification`) or finishes (`Stop`). The `--super`/`--sub` headers and themes make it easy to tell, at a glance, *which* session is talking and *what kind* of event it is:
+
+- **Colors** distinguish the event. For example, `--secondary` for "needs your input" and `--primary` for "done" (or `--danger` for anything you really can't miss).
+- **`--super`** carries the notification title.
+- **`--sub`** carries the working directory, so you know which project is asking when you have several sessions open.
+- **The main text** carries the message itself.
+
+Hooks receive a JSON payload on stdin, so `jq` pulls out the pieces. Add these to `~/.claude/settings.json`:
 
 ```json
 {
@@ -62,7 +69,7 @@ Fire a banner whenever Claude Code needs your input (`Notification`) or finishes
         "hooks": [
           {
             "type": "command",
-            "command": "msg=$(jq -r '.message // \"Claude needs your input\"'); big-banner \"$msg\""
+            "command": "in=$(cat); msg=$(jq -r '.message // \"Claude needs your input\"' <<<\"$in\"); title=$(jq -r '.title // empty' <<<\"$in\"); cwd=$(jq -r --arg h \"$HOME\" '.cwd // empty | if startswith($h) then \"~\" + .[($h|length):] else . end' <<<\"$in\"); big-banner --secondary --super \"$title\" --sub \"$cwd\" \"$msg\""
           }
         ]
       }
@@ -72,7 +79,7 @@ Fire a banner whenever Claude Code needs your input (`Notification`) or finishes
         "hooks": [
           {
             "type": "command",
-            "command": "big-banner \"Claude is done\""
+            "command": "in=$(cat); title=$(jq -r '.title // empty' <<<\"$in\"); cwd=$(jq -r --arg h \"$HOME\" '.cwd // empty | if startswith($h) then \"~\" + .[($h|length):] else . end' <<<\"$in\"); big-banner --primary --super \"$title\" --sub \"$cwd\" \"Claude is done\""
           }
         ]
       }
@@ -80,6 +87,20 @@ Fire a banner whenever Claude Code needs your input (`Notification`) or finishes
   }
 }
 ```
+
+What the shell is doing:
+
+- `in=$(cat)` reads the hook payload once so it can be queried several times.
+- `.message` and `.title` come straight from the notification; the message falls back to a default if it's missing.
+- The `cwd` filter swaps your home directory for `~` so the sub header stays short.
+
+If you'd rather keep it minimal, the simplest version is just a message and a color:
+
+```json
+{ "type": "command", "command": "big-banner --secondary \"Claude needs your input\"" }
+```
+
+Swap in `--danger`, `--tertiary`, or `--monochrome` to give other events (e.g. a `PostToolUse` hook on a failing command) their own look.
 
 ---
 
