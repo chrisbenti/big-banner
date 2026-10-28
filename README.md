@@ -2,6 +2,8 @@
 
 # big-banner
 
+![big-banner showing a full-screen "SHIP IT" banner](docs/screenshot.png)
+
 Fullscreen attention banner for macOS. Plays a sound, dims the screen, shows your message in giant text. Click or press Escape to dismiss.
 
 ```
