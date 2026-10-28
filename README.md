@@ -19,12 +19,19 @@ make update                           # install the latest origin/main if yours 
 
 ## Update
 
-Pull first, then run the update:
+Pull first, then run the update. Run these from your big-banner checkout.
+
+**With confirmation** (shows how far behind you are and asks before installing):
 
 ```
-git pull
-make update          # install the latest origin/main if yours is out of date
-make update-force    # same, but skip the confirmation prompt
+git pull && make update
+```
+
+<!-- cspell:ignore YOLO -->
+**YOLO** (same, but skips the confirmation prompt):
+
+```
+git pull && make update-force
 ```
 
 ## Install
