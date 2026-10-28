@@ -9,6 +9,7 @@ big-banner --no-bell "meeting soon"   # no sound
 big-banner --super "BUILD FAILED" --sub "main @ c85d485" "DEPLOY BLOCKED"   # optional smaller lines above/below
 big-banner --danger "PROD IS DOWN"   # themes: --primary (default), --secondary, --tertiary, --danger, --monochrome
 big-banner --pause "heads up"         # pause media while the banner is up
+big-banner --hash                     # git commit this build came from (* suffix if built dirty)
 ```
 
 ## Install

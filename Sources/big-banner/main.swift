@@ -8,6 +8,11 @@ if let i = args.firstIndex(of: "--") {
     args = Array(args[..<i])
 }
 
+if args.contains("--hash") {
+    print(buildHash)
+    exit(0)
+}
+
 if args.contains("--help") || args.contains("-h") {
     print("""
     Usage: big-banner [options] [--] <message>
@@ -25,6 +30,7 @@ if args.contains("--help") || args.contains("-h") {
       --verbose       Print debug log messages to stdout
       --serve         Run an HTTP server and show a banner for each request (see Server mode)
       --port <n>      Port for --serve (default 10000)
+      --hash          Print the git commit this build was compiled from (full hash, + * if dirty)
       --help, -h      Show this help message
       --              Treat everything after it as message text, even if it looks like a flag
 
