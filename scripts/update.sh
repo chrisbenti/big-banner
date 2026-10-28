@@ -1,6 +1,10 @@
 #!/bin/bash
 # Update the installed big-banner to the latest origin/main.
+# Usage: update.sh [-f]   (-f skips the confirmation prompt)
 set -euo pipefail
+
+force=0
+[ "${1:-}" = "-f" ] && force=1
 
 cd "$(dirname "$0")/.."
 
@@ -55,11 +59,15 @@ else
   target=hard-install
 fi
 
-read -r -p "Update with 'make $target'? [y/N] " answer
-case "$answer" in
-  y|Y|yes|YES) ;;
-  *) echo "Not updating."; exit 0 ;;
-esac
+if [ "$force" -eq 1 ]; then
+  echo "Updating with 'make $target' (-f)."
+else
+  read -r -p "Update with 'make $target'? [y/N] " answer
+  case "$answer" in
+    y|Y|yes|YES) ;;
+    *) echo "Not updating."; exit 0 ;;
+  esac
+fi
 
 git merge --ff-only origin/main
 make "$target"

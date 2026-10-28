@@ -10,8 +10,8 @@ BUILD_INFO := Sources/big-banner/BuildInfo.swift
 help: ## Display this help message
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-update: ## Install the latest origin/main if the installed build is out of date
-	@scripts/update.sh
+update: ## Install the latest origin/main if out of date (FORCE=1 skips the prompt)
+	@scripts/update.sh $(if $(FORCE),-f)
 
 build-info: ## Generate BuildInfo.swift with the current git hash (* if dirty)
 	@hash=$$(git rev-parse HEAD 2>/dev/null || echo unknown); \
