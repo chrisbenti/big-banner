@@ -44,35 +44,6 @@ make hard-install   # copies binary to ~/bin
 make soft-install   # sym-links binary from build dir
 ```
 
-### Download a prebuilt binary
-
-Every push to `main` publishes a fresh binary to the `latest` release. Since the repo is public, no auth is needed:
-
-```
-mkdir -p ~/bin
-curl -L https://github.com/chrisbenti/big-banner/releases/latest/download/big-banner -o ~/bin/big-banner
-
-chmod +x ~/bin/big-banner
-xattr -d com.apple.quarantine ~/bin/big-banner   # unquarantine, since it's unsigned
-```
-
-Or from the GitHub UI:
-
-1. Go to the [latest release](https://github.com/chrisbenti/big-banner/releases/latest).
-2. Under **Assets**, click `big-banner` to download it.
-3. Move it into `~/bin` and make it executable:
-   ```
-   mkdir -p ~/bin
-   mv ~/Downloads/big-banner ~/bin/big-banner
-   chmod +x ~/bin/big-banner
-   ```
-4. Remove the quarantine flag, since the binary is unsigned (otherwise Gatekeeper will refuse to run it):
-   ```
-   xattr -d com.apple.quarantine ~/bin/big-banner
-   ```
-
-Make sure `~/bin` is on your `PATH` (e.g. `export PATH="$HOME/bin:$PATH"` in your `.zshrc`/`.bashrc`), then run it as `big-banner`.
-
 ## Server mode
 
 Run big-banner as a tiny local HTTP server and trigger banners from anywhere: scripts, `curl`, or a bookmarklet on any website.
