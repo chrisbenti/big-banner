@@ -1,10 +1,16 @@
 import AppKit
 
 var args = Array(CommandLine.arguments.dropFirst())
+// Everything after a bare "--" is literal message text, never parsed as flags.
+var literalText: [String] = []
+if let i = args.firstIndex(of: "--") {
+    literalText = Array(args[(i + 1)...])
+    args = Array(args[..<i])
+}
 
 if args.contains("--help") || args.contains("-h") {
     print("""
-    Usage: big-banner [options] <message>
+    Usage: big-banner [options] [--] <message>
 
     Displays a full-screen attention banner with flashing colors and an alarm sound.
     Grabs and holds keyboard focus until dismissed.
@@ -18,6 +24,7 @@ if args.contains("--help") || args.contains("-h") {
       --sub <text>    Smaller line shown below the message
       --verbose       Print debug log messages to stdout
       --help, -h      Show this help message
+      --              Treat everything after it as message text, even if it looks like a flag
 
     Themes (pick one; if several are given, the last wins; default is --primary):
       --primary       Flashing blue/sky blue
@@ -43,6 +50,10 @@ if args.contains("--help") || args.contains("-h") {
     exit(0)
 }
 
+// Take valued flags first so a value like "--danger" is never misread as a flag.
+let superText = takeValue(for: "--super")
+let subText = takeValue(for: "--sub")
+
 let showSheet = !args.contains("--no-sheet")
 args.removeAll { $0 == "--no-sheet" }
 let playBell = !args.contains("--no-bell")
@@ -62,9 +73,7 @@ func takeValue(for flag: String) -> String? {
     let value = args.remove(at: i).trimmingCharacters(in: .whitespacesAndNewlines)
     return value.isEmpty ? nil : value
 }
-let superText = takeValue(for: "--super")
-let subText = takeValue(for: "--sub")
-let text = args.joined(separator: " ")
+let text = (args + literalText).joined(separator: " ")
 
 func log(_ msg: String) {
     guard verbose else { return }
