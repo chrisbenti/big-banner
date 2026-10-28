@@ -1,3 +1,5 @@
+> **Use `make update` to get the latest version.**
+
 # big-banner
 
 Fullscreen attention banner for macOS. Plays a sound, dims the screen, shows your message in giant text. Click or press Escape to dismiss.

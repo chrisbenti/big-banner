@@ -19,9 +19,11 @@ remote=$(git rev-parse origin/main)
 bin=$(command -v big-banner || true)
 [ -n "$bin" ] || bin="$HOME/bin/big-banner"
 
+# Builds from before --hash existed would treat it as message text and open a
+# banner, so check --help first and assume such builds are behind main.
 installed=""
-if [ -x "$bin" ]; then
-  installed=$("$bin" --hash 2>/dev/null || true)
+if [ -x "$bin" ] && "$bin" --help 2>/dev/null | grep -q -- '--hash'; then
+  installed=$("$bin" --hash)
 fi
 
 if [ "$installed" = "$remote" ]; then
