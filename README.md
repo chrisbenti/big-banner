@@ -8,7 +8,7 @@ big-banner --no-sheet "DRINK WATER"   # floating banner only, no dim
 big-banner --no-bell "meeting soon"   # no sound
 big-banner --super "BUILD FAILED" --sub "main @ c85d485" "DEPLOY BLOCKED"   # optional smaller lines above/below
 big-banner --danger "PROD IS DOWN"   # themes: --primary (default), --secondary, --tertiary, --danger, --monochrome
-big-banner --no-pause "heads up"      # don't pause media
+big-banner --pause "heads up"         # pause media while the banner is up
 ```
 
 ## Install
@@ -160,7 +160,7 @@ Swap in `--danger`, `--tertiary`, or `--monochrome` to give other events (e.g. a
 
 ## How media pausing works
 
-By default, big-banner pauses whatever is playing when it opens, then resumes it when you dismiss. Disable with `--no-pause`.
+With `--pause`, big-banner pauses whatever is playing when it opens, then resumes it when you dismiss.
 
 ### The detection problem
 
