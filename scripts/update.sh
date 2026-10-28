@@ -31,7 +31,21 @@ if [ "$installed" = "$remote" ]; then
   exit 0
 fi
 
-echo "Installed: ${installed:-none}"
+base=${installed%\*}
+if [ -z "$installed" ]; then
+  echo "Your build is out of date (it predates --hash)."
+elif git cat-file -e "$base^{commit}" 2>/dev/null; then
+  behind=$(git rev-list --count "$base..origin/main")
+  if [ "$behind" -gt 0 ]; then
+    echo "Your build is $behind commit(s) behind origin/main."
+  else
+    echo "Your build differs from origin/main."
+  fi
+  [ "$base" = "$installed" ] || echo "(it was built from a dirty tree)"
+else
+  echo "Your build is from an unknown commit."
+fi
+echo "Installed: ${installed:-unknown}"
 echo "Latest:    $remote"
 
 # A symlinked install means soft-install; a copied binary means hard-install.
