@@ -195,8 +195,45 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var flashState = false
     var bgView: NSView?
     var bannerLabels: [NSTextField] = []
+    var updateBadge: NSImageView?
+    var updateBadgeLabel: NSTextField?
     var focusTimer: Timer?
     var observers: [NSObjectProtocol] = []
+
+    // cspell:ignore Subview
+    /// Adds the "Update Available" badge to the top-right corner of the banner.
+    func addUpdateBadge() {
+        guard let bg = bgView, updateBadge == nil else { return }
+        let badgeSize: CGFloat = 28
+        let badgeInset: CGFloat = 12
+        let color = flashState ? theme.fgB : theme.fgA
+        let config = NSImage.SymbolConfiguration(pointSize: 20, weight: .bold)
+        let badge = NSImageView(frame: NSRect(
+            x: bg.bounds.width - badgeInset - badgeSize,
+            y: bg.bounds.height - badgeInset - badgeSize,
+            width: badgeSize,
+            height: badgeSize
+        ))
+        badge.image = NSImage(systemSymbolName: "arrow.down.circle.fill", accessibilityDescription: "Update available")?
+            .withSymbolConfiguration(config)
+        badge.contentTintColor = color
+        bg.addSubview(badge)
+        updateBadge = badge
+
+        let badgeLabel = NSTextField(labelWithString: "Update Available")
+        badgeLabel.font = NSFont(name: "SFMono-Bold", size: 11) ?? .monospacedSystemFont(ofSize: 11, weight: .bold)
+        badgeLabel.textColor = color
+        badgeLabel.isEditable = false
+        badgeLabel.isBordered = false
+        badgeLabel.drawsBackground = false
+        badgeLabel.sizeToFit()
+        badgeLabel.frame.origin = NSPoint(
+            x: badge.frame.minX - 4 - badgeLabel.frame.width,
+            y: badge.frame.midY - badgeLabel.frame.height / 2
+        )
+        bg.addSubview(badgeLabel)
+        updateBadgeLabel = badgeLabel
+    }
 
     func seizeFocus() {
         NSApp.activate(ignoringOtherApps: true)
@@ -355,6 +392,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             l.frame = NSRect(x: padding, y: cursorY, width: availableWidth, height: l.frame.height)
             bg.addSubview(l)
         }
+        // The badge shows from the cached check right away; if the cache is stale,
+        // a background fetch may add it once GitHub answers.
+        if UpdateCheck.cachedUpdateAvailable() { addUpdateBadge() }
+        UpdateCheck.refreshIfStale { [weak self] outdated in
+            if outdated { self?.addUpdateBadge() }
+        }
         contentView.addSubview(bg)
 
         window?.makeKeyAndOrderFront(nil)
@@ -395,6 +438,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self.bgView?.layer?.backgroundColor = nextBg.cgColor
                 CATransaction.commit()
                 self.bannerLabels.forEach { $0.textColor = nextFg }
+                self.updateBadge?.contentTintColor = nextFg
+                self.updateBadgeLabel?.textColor = nextFg
             }
             RunLoop.main.add(timer, forMode: .common)
             flashTimer = timer
@@ -419,7 +464,14 @@ let delegate = AppDelegate()
 app.delegate = delegate
 app.setActivationPolicy(.accessory)
 
-NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { _ in
+let updateURL = URL(string: "https://github.com/chrisbenti/big-banner#update")!
+
+NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { event in
+    // Clicking the update badge opens the update instructions, then dismisses like any other click.
+    if let bg = delegate.bgView, let badge = delegate.updateBadge, let label = delegate.updateBadgeLabel,
+       badge.frame.union(label.frame).contains(bg.convert(event.locationInWindow, from: nil)) {
+        NSWorkspace.shared.open(updateURL)
+    }
     app.terminate(nil)
     return nil
 }

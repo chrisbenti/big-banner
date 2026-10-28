@@ -206,3 +206,13 @@ close:   didPause? → send play → reset didPause
 ```
 
 Resume is strictly gated on `didPause`. If nothing was playing when the banner opened, closing it does nothing. No toggle desync, no starting something that wasn't already running.
+
+## Update badge
+
+When your installed build is behind `origin/main`, the banner shows an "Update Available" badge in its top-right corner. Clicking the badge opens the [Update](#update) instructions in your browser.
+
+- **How it checks:** at most once every 24 hours, `big-banner` asks the GitHub API (`https://api.github.com/repos/chrisbenti/big-banner/commits/main`) for the latest commit sha and compares it to the commit your binary was built from (`big-banner --hash`). If they differ, the badge shows.
+- **Never blocks the banner:** the banner appears immediately using the last cached answer. If the cache is stale, the fetch runs in the background and the badge appears when it finishes. The attempt is recorded before the fetch starts, so dismissing the banner early or launching several at once doesn't trigger repeat requests. A failed fetch (offline, rate limited) keeps the previous answer and is retried after another 24 hours.
+- **Dirty builds are skipped:** if your build was made from a tree with uncommitted changes (`--hash` ends in `*`), nothing is fetched and the badge never shows.
+- **Cache file:** `~/Library/Caches/big-banner/update-check.json`, holding the latest known sha and when it was checked, e.g. `{"checkedAt":"2026-10-28T20:19:59Z","sha":"5e4a782..."}`. Delete it to force a fresh check on the next banner. Nothing else is stored, and the only network request is the one above.
+- **Testing:** set `BIG_BANNER_FORCE_UPDATE_CHECK=1` to ignore the dirty-build skip and the 24-hour cache.
