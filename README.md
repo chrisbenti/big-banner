@@ -50,6 +50,60 @@ Or from the GitHub UI:
 
 Make sure `~/bin` is on your `PATH` (e.g. `export PATH="$HOME/bin:$PATH"` in your `.zshrc`/`.bashrc`), then run it as `big-banner`.
 
+## Server mode
+
+Run big-banner as a tiny local HTTP server and trigger banners from anywhere: scripts, `curl`, or a bookmarklet on any website.
+
+```
+big-banner --serve                  # listens on 127.0.0.1:10000
+big-banner --serve --port 4242      # pick a port
+big-banner --serve --no-bell --danger   # other flags become defaults for every banner
+```
+
+On startup it prints the URL plus ready-to-paste JavaScript snippets for the port you chose.
+
+Send `GET /?...` or `POST /` (JSON or form-encoded body) with these parameters:
+
+| Parameter     | Meaning                                                              |
+| ------------- | -------------------------------------------------------------------- |
+| `text`/`msg`  | Main message (required)                                              |
+| `super`/`sub` | Smaller lines above/below the message                                |
+| `theme`       | `primary`, `secondary`, `tertiary`, `danger` or `monochrome`         |
+| `bell=0`      | No alarm sound                                                       |
+| `sheet=0`     | Floating banner instead of the full-screen overlay                   |
+| `pause=1`     | Pause media while the banner is shown                                |
+
+```
+curl "http://127.0.0.1:10000/?text=BUILD%20DONE&theme=tertiary"
+curl -X POST -H 'Content-Type: application/json' -d '{"text":"DEPLOYED","sub":"prod"}' http://127.0.0.1:10000/
+```
+
+Replies `202 {"queued": n}` straight away (`n` is the banner's place in line, 1 = showing now). Banners are queued: the next one appears after you dismiss the current one. Bad input gets a `400` with an `error` message.
+
+### From JavaScript
+
+```js
+// Async, blocking: waits until the server has accepted the banner
+const res = await fetch("http://127.0.0.1:10000/?" + new URLSearchParams({ text: "Hello", super: "Heads up", sub: "from JS" }));
+console.log(await res.json());
+
+// Async, non-blocking: fires the request and carries on immediately
+fetch("http://127.0.0.1:10000/?" + new URLSearchParams({ text: "Hello" })).catch(() => {});
+```
+
+### Bookmarklet
+
+CORS is wide open (`Access-Control-Allow-Origin: *`), so a bookmarklet works on any page. Save this as a bookmark URL:
+
+```
+javascript:fetch('http://127.0.0.1:10000/?text='+encodeURIComponent(document.title)+'&sub='+encodeURIComponent(location.host)).catch(()=>alert('big-banner is not running'))
+```
+
+Notes:
+
+- The server only binds to `127.0.0.1`, so other machines on your network can't reach it. Any website you visit *can* (that's the point), so don't run it on a machine where that bothers you.
+- Chrome may ask once per site for permission to access local network devices. Safari can block `http://127.0.0.1` requests from HTTPS pages.
+
 ## Claude Code integration
 
 Claude Code [hooks](https://docs.claude.com/en/docs/claude-code/hooks) can fire a banner whenever Claude needs you (`Notification`) or finishes (`Stop`). The `--super`/`--sub` headers and themes make it easy to tell, at a glance, *which* session is talking and *what kind* of event it is:

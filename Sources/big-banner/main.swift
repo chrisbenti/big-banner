@@ -23,6 +23,8 @@ if args.contains("--help") || args.contains("-h") {
       --super <text>  Smaller line shown above the message
       --sub <text>    Smaller line shown below the message
       --verbose       Print debug log messages to stdout
+      --serve         Run an HTTP server and show a banner for each request (see Server mode)
+      --port <n>      Port for --serve (default 10000)
       --help, -h      Show this help message
       --              Treat everything after it as message text, even if it looks like a flag
 
@@ -42,12 +44,48 @@ if args.contains("--help") || args.contains("-h") {
       is sized independently to fill the remaining space, but never below
       24pt; longer text is truncated with an ellipsis instead.
 
+    Server mode:
+      big-banner --serve [--port 10000] [--no-bell] [--danger] ...
+      Listens on 127.0.0.1 only and prints JavaScript snippets for calling it.
+      Any other flags given with --serve become defaults for every banner.
+      Send GET /?... or POST / (JSON or form body) with these parameters:
+        text (or msg)   Main message (required)
+        super, sub      Header lines above/below the message
+        theme           primary, secondary, tertiary, danger or monochrome
+        bell=0          Suppress the alarm sound
+        sheet=0         Floating banner instead of a full-screen overlay
+        pause=1         Pause media while the banner is shown
+      Replies 202 immediately. Banners are queued: the next one appears after
+      you dismiss the current one. CORS is open (any origin), so websites and
+      bookmarklets can call it.
+
     Examples:
       big-banner "STAND UP"
+      big-banner --serve --port 10000
+      curl "http://127.0.0.1:10000/?text=HELLO&theme=danger"
       big-banner --danger --super "BUILD FAILED" --sub "main @ c85d485" "DEPLOY BLOCKED"
       big-banner --tertiary --sub "all checks passed" "MERGED"
     """)
     exit(0)
+}
+
+if args.contains("--serve") {
+    args.removeAll { $0 == "--serve" }
+    var port: UInt16 = 10000
+    if let portText = takeValue(for: "--port") {
+        guard let parsed = UInt16(portText), parsed > 0 else {
+            print("big-banner: --port must be a number from 1 to 65535")
+            exit(1)
+        }
+        port = parsed
+    }
+    // Whatever flags remain become defaults for every banner; request params are appended after them.
+    let defaultFlags = Set(["--no-sheet", "--no-bell", "--pause", "--verbose"] + Themes.all.map { $0.flag })
+    if let bad = args.first(where: { !defaultFlags.contains($0) }) {
+        print("big-banner: '\(bad)' is not supported with --serve (set it per request instead)")
+        exit(1)
+    }
+    runServer(port: port, defaultArgs: args.filter { $0 != "--verbose" }, verbose: args.contains("--verbose"))
 }
 
 // Take valued flags first so a value like "--danger" is never misread as a flag.
