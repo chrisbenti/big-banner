@@ -1,4 +1,4 @@
-> **Use `make update` to get the latest version** (`make update FORCE=1` to skip the prompt).
+> **Use `make update` to get the latest version** (`make update-force` to skip the prompt).
 
 # big-banner
 
