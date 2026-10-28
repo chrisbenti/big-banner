@@ -1,4 +1,4 @@
-> **Use `make update` to get the latest version** (`make update-force` to skip the prompt).
+> **Out of date? See [Update](#update).**
 
 # big-banner
 
@@ -13,6 +13,16 @@ big-banner --danger "PROD IS DOWN"   # themes: --primary (default), --secondary,
 big-banner --pause "heads up"         # pause media while the banner is up
 big-banner --hash                     # git commit this build came from (* suffix if built dirty)
 make update                           # install the latest origin/main if yours is out of date
+```
+
+## Update
+
+Pull first, then run the update:
+
+```
+git pull
+make update          # install the latest origin/main if yours is out of date
+make update-force    # same, but skip the confirmation prompt
 ```
 
 ## Install
